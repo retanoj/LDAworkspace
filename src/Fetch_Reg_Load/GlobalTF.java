@@ -31,7 +31,7 @@ public class GlobalTF {
 	private Map<String, Integer> hashMap = new HashMap<String, Integer>();
 	private Map<String, Integer> idMap = new HashMap<String, Integer>();
 	private final String FILE = "cipin.txt";
-	private final String STOPWORD = "stopword.txt";
+	//private final String STOPWORD = "stopword.txt";
 	private final String DOCUMENTS = "documents_num.txt";
 	private final String DOCUMENTS_TYPE = "NUM"; // STRING
 	
@@ -124,20 +124,20 @@ public class GlobalTF {
 	}
 	public void filter(){
 		System.out.println("filter start....");
-		File file = new File(STOPWORD);
-		HashSet<String> stopword = new HashSet<String>();
-		try {
-			Reader reader = new InputStreamReader(new FileInputStream(file), "UTF-8");
-			BufferedReader bReader = new BufferedReader(reader);
-			String line = bReader.readLine();			
-			while(line != null){
-				stopword.add(line.trim());
-				line = bReader.readLine();
-			}
-			bReader.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		//File file = new File(STOPWORD);
+//		HashSet<String> stopword = new HashSet<String>();
+//		try {
+//			Reader reader = new InputStreamReader(new FileInputStream(file), "UTF-8");
+//			BufferedReader bReader = new BufferedReader(reader);
+//			String line = bReader.readLine();			
+//			while(line != null){
+//				stopword.add(line.trim());
+//				line = bReader.readLine();
+//			}
+//			bReader.close();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
 		Iterator it = hashMap.entrySet().iterator();
 		HashMap<String, Integer> tMap = new HashMap<>();
 		idMap.clear();
@@ -146,7 +146,7 @@ public class GlobalTF {
 			Map.Entry<String, Integer> entry = (Map.Entry<String, Integer>) it.next();
 			String key = entry.getKey();
 			Integer value = entry.getValue();
-			if(!stopword.contains(key) && value > 10 && key.length() > 1){
+			if(value > 10 && key.length() > 1){
 				tMap.put(key, value);
 				idMap.put(key, id);
 				id++;
