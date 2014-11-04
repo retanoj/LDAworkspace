@@ -1,0 +1,6 @@
+# ignore dir
+bin/
+test/
+
+# ignore file
+.classpath
