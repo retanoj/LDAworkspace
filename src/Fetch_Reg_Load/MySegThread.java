@@ -74,6 +74,8 @@ public class MySegThread extends Thread{
 			} catch (Exception e) {
 				continue;
 			}
+			if(afterSeg.trim().length() < 20)
+				continue;
 			data.data_voc = afterSeg.trim();
 			doneQueue.offer(data);
 		}
@@ -128,8 +130,6 @@ public class MySegThread extends Thread{
 	
 	public String ChineseSeg(String content) throws Exception{
 		List<Term> resulTerms = ToAnalysis.parse(content);
-		//new NatureRecognition(resulTerms).recognition() ;
-		//resulTerms = FilterModifWord.modifResult(resulTerms) ;
 		StringBuffer result = new StringBuffer();
 		for(Term t : resulTerms){
 			String word = t.getName();
@@ -160,7 +160,6 @@ public class MySegThread extends Thread{
 			return false;
 	}
 	private boolean isOther(char c){
-		//if(isChinese(c) || isNumber(c) || isLetter(c))
 		if(isChinese(c))
 			return false;
 		else 
@@ -190,7 +189,6 @@ public class MySegThread extends Thread{
 		String afteFilter;
 		try {
 			afteFilter = hFilter.filterHtml(afteDecode);
-//			System.out.println(afteFilter);
 			String afteSeg = seg.ChineseSeg(afteFilter);
 			System.out.println(afteSeg);
 		} catch (Exception e) {
