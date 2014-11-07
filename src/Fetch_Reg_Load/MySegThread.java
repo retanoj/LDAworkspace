@@ -32,8 +32,8 @@ public class MySegThread extends Thread{
 	private BlockingQueue<Data> undoQueue;
 	private BlockingQueue<Data> doneQueue;
 	private final int TIMEOUT = 100; //second
-	private String DICTIONARY = "lib\\default.dic";
-	private final String STOPWORD = "lib\\stopword.txt";
+	private String DICTIONARY = "./lib/default.dic";
+	private final String STOPWORD = "./lib/stopword.txt";
 	HtmlFilter filter;
 	
 	@Override
@@ -106,7 +106,7 @@ public class MySegThread extends Thread{
 				if(line == null || line.length() == 0)
 					break;
 				FilterModifWord.insertStopWord(line.trim());
-				System.out.println(line.trim());
+				//System.out.println(line.trim());
 			}
 			bReader.close();
 		} catch (IOException e) {

@@ -46,7 +46,7 @@ class dbSeg extends Thread{
 			while(true){
 				select_rs_flag = false;
 				//select part into undo Queue
-				String select_sql = String.format("select id,data_voc from %s where html_id>=%d and html_id<%d;", this.fromTableName, this.left, this.left +this.step);
+				String select_sql = String.format("select id,data_voc from %s where html_id>=%d and html_id<%d;", this.fromTableName, this.left, this.left +this.step/2);
 				ResultSet select_rs = stmt.executeQuery(select_sql);
 				
 				if (select_rs.next()){
@@ -155,7 +155,7 @@ public class seg_html {
 	public static void main(String[] args) {
 		seg_html m = new seg_html();
 		System.out.println("usage:java -jar seg_url.jar tableName_prefix start_pos");
-		m.start_dbseg(args[0], 2, Integer.parseInt(args[1]), 200);
+		m.start_dbseg(args[0], 2, Integer.parseInt(args[1]), 100);
 	}
 
 }
