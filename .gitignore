@@ -5,4 +5,4 @@ test/
 # ignore file
 .classpath
 .settings/org.eclipse.core.resources.prefs
-./*.jar
+seg_html.jar
