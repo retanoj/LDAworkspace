@@ -155,7 +155,7 @@ public class seg_html {
 	public static void main(String[] args) {
 		seg_html m = new seg_html();
 		System.out.println("usage:java -jar seg_url.jar tableName_prefix start_pos");
-		m.start_dbseg(args[0], 2, Integer.parseInt(args[1]), 100);
+		m.start_dbseg(args[0], 2, Integer.parseInt(args[1]), 200);
 	}
 
 }
