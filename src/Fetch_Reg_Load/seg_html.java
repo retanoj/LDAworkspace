@@ -46,7 +46,7 @@ class dbSeg extends Thread{
 			while(true){
 				select_rs_flag = false;
 				//select part into undo Queue
-				String select_sql = String.format("select id,data_voc from %s where html_id>=%d and html_id<%d;", this.fromTableName, this.left, this.left +this.step/2);
+				String select_sql = String.format("select id,data_voc from %s where html_id>=%d and html_id<%d;", this.fromTableName, this.left, this.left +this.step);
 				ResultSet select_rs = stmt.executeQuery(select_sql);
 				
 				if (select_rs.next()){
@@ -69,8 +69,8 @@ class dbSeg extends Thread{
 				//insert part from done Queue				
 				insert_sql = "";
 				
-				if (this.qDone.size() > size){
-					for (int i=0; i<size; i++){
+				if (this.qDone.size() > size/2){
+					for (int i=0; i<size/2; i++){
 						t = (Data) this.qDone.poll();
 						if (t.data_voc != null && t.data_voc.length() != 0){
 							insert_sql += String.format("insert into %s (id, data_seg) values(%d, '%s');", this.toTableName, t.id, t.data_voc);
@@ -154,8 +154,8 @@ public class seg_html {
 	
 	public static void main(String[] args) {
 		seg_html m = new seg_html();
-		System.out.println("usage:java -jar seg_url.jar tableName_prefix start_pos");
-		m.start_dbseg(args[0], 2, Integer.parseInt(args[1]), 100);
+		System.out.println("usage:java -jar seg_url.jar tableName_prefix start_pos step_num");
+		m.start_dbseg(args[0], 2, Integer.parseInt(args[1]), Integer.parseInt(args[2]));
 	}
 
 }
