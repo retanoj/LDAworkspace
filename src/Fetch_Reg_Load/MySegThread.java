@@ -105,11 +105,11 @@ public class MySegThread extends Thread{
 			BufferedReader bReader = new BufferedReader(reader);
 			while(true){
 				String line = bReader.readLine();
-				if(line == null || line.length() == 0)
+				if(line == null)
 					break;
+				if(line.trim().length() == 0)
+					continue;
 				stopSet.add(line.trim());
-				//FilterModifWord.insertStopWord(line.trim());
-				//System.out.println(line.trim());
 			}
 			bReader.close();
 		} catch (IOException e) {
@@ -169,7 +169,7 @@ public class MySegThread extends Thread{
 	private boolean isGoodWord(String word){
 		if(word.length() == 1)
 			return false;
-		if(stopSet.contains(word)){
+		if(stopSet.contains(word.trim())){
 			//System.out.println(word);
 			return false;
 		}
