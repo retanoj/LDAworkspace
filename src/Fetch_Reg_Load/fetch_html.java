@@ -131,7 +131,7 @@ class dbLoad extends Thread{
 	}
 }
 
-public class Main {
+public class fetch_html {
 	int start_pos;
 	int tFetchUrl_num;
 	int tNum;
@@ -161,7 +161,7 @@ public class Main {
 	
 	
 	public static void main(String[] args) { 
-		Main m = new Main();
+		fetch_html m = new fetch_html();
 		m.start_dbload(args[0], Integer.parseInt(args[1]) , 200, 400);
 	}
 

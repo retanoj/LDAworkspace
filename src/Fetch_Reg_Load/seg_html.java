@@ -15,8 +15,8 @@ class dbSeg extends Thread{
 	String fromTableName;
 	String toTableName;
 	
-	LinkedBlockingQueue qUndo;
-	LinkedBlockingQueue qDone;
+	LinkedBlockingQueue<Data> qUndo;
+	LinkedBlockingQueue<Data> qDone;
 	
 	Connection conn;
 	
@@ -46,7 +46,7 @@ class dbSeg extends Thread{
 			while(true){
 				select_rs_flag = false;
 				//select part into undo Queue
-				String select_sql = String.format("select id,data_voc from %s where html_id>=%d and html_id<%d;", this.fromTableName, this.left, this.left +this.step/2);
+				String select_sql = String.format("select id,data_voc from %s where html_id>=%d and html_id<%d;", this.fromTableName, this.left, this.left +this.step);
 				ResultSet select_rs = stmt.executeQuery(select_sql);
 				
 				if (select_rs.next()){
@@ -64,7 +64,6 @@ class dbSeg extends Thread{
 				try {
 					Thread.sleep(200);
 				} catch (InterruptedException e1) {
-					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
 				//insert part from done Queue				
@@ -84,6 +83,7 @@ class dbSeg extends Thread{
 				} else{
 					if (select_rs_flag == false){
 						t = null;
+						System.out.println("[*] The process is nearing completion.");
 						while(true){
 							try {
 								t = (Data) this.qDone.poll(100, TimeUnit.SECONDS);
@@ -121,7 +121,7 @@ class dbSeg extends Thread{
 		}
 	}
 }
-public class seg_url {
+public class seg_html {
 	int tNum;
 	int step;
 	int left;
@@ -143,19 +143,18 @@ public class seg_url {
 			(new MySegThread(this.qUndo, this.qDone)).start();
 		}
 		try {
-			Thread.sleep(20000);
+			Thread.sleep(10000);
 		} catch (InterruptedException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-		(new dbSeg(this.qUndo, this.qDone, this.tableName+"_100w_html", this.tableName+"_100w_seg", this.left, this.step)).start();
+		(new dbSeg(this.qUndo, this.qDone, this.tableName+"_100w_html_2", this.tableName+"_100w_seg_2", this.left, this.step)).start();
 		
 	}
 	
 	
 	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		seg_url m = new seg_url();
+		seg_html m = new seg_html();
+		System.out.println("usage:java -jar seg_url.jar tableName_prefix start_pos");
 		m.start_dbseg(args[0], 2, Integer.parseInt(args[1]), 100);
 	}
 
