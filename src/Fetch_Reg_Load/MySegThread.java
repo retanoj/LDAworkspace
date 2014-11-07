@@ -34,7 +34,8 @@ public class MySegThread extends Thread{
 	private final int TIMEOUT = 100; //second
 	private String DICTIONARY = "./lib/default.dic";
 	private final String STOPWORD = "./lib/stopword.txt";
-	HtmlFilter filter;
+	private HtmlFilter filter;
+	private HashSet<String> stopSet;
 	
 	@Override
 	public void run() {
@@ -96,6 +97,7 @@ public class MySegThread extends Thread{
 	}
 	
 	private void initStopWord(){
+		stopSet = new HashSet<String>();
 		File file = new File(STOPWORD);
 		//HashSet<String> stopword = new HashSet<String>();
 		try {
@@ -105,7 +107,8 @@ public class MySegThread extends Thread{
 				String line = bReader.readLine();
 				if(line == null || line.length() == 0)
 					break;
-				FilterModifWord.insertStopWord(line.trim());
+				stopSet.add(line.trim());
+				//FilterModifWord.insertStopWord(line.trim());
 				//System.out.println(line.trim());
 			}
 			bReader.close();
@@ -125,8 +128,8 @@ public class MySegThread extends Thread{
 	
 	public String ChineseSeg(String content) throws Exception{
 		List<Term> resulTerms = ToAnalysis.parse(content);
-		new NatureRecognition(resulTerms).recognition() ;
-		resulTerms = FilterModifWord.modifResult(resulTerms) ;
+		//new NatureRecognition(resulTerms).recognition() ;
+		//resulTerms = FilterModifWord.modifResult(resulTerms) ;
 		StringBuffer result = new StringBuffer();
 		for(Term t : resulTerms){
 			String word = t.getName();
@@ -166,6 +169,10 @@ public class MySegThread extends Thread{
 	private boolean isGoodWord(String word){
 		if(word.length() == 1)
 			return false;
+		if(stopSet.contains(word)){
+			//System.out.println(word);
+			return false;
+		}
 		for(int i = 0; i < word.length(); i++){
 			char c = word.charAt(i);
 			if(isOther(c))
