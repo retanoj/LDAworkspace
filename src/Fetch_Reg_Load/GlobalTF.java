@@ -19,57 +19,83 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
+
+import de.tototec.cmdoption.CmdOption;
+import de.tototec.cmdoption.CmdlineParser;
+import de.tototec.cmdoption.CmdlineParserException;
 
 
 public class GlobalTF {
 	private Map<String, Integer> hashMap = new HashMap<String, Integer>();
 	private Map<String, Integer> idMap = new HashMap<String, Integer>();
 	private final String FILE = "cipin.txt";
-	private final String DOCUMENTS = "documents.txt";
+	private String DOCUMENTS = "documents.txt";
 	private final String DOCUMENTS_TYPE = "STRING"; // STRING
+	public String database = "";
+	public int step = 10000;
+	public int MIN;
+	public int MAX;
 	
 	
 	public void count(){
+		System.out.println("Counting start....");
 		Connection conn = ConnUtil.getConn();
 		Statement stmt = null;
 		int id = 0;
 		try {
 			stmt = conn.createStatement();
-			String select_sql = String.format("select data_seg from t20140702_100w_seg_2;");
-			ResultSet select_rs = stmt.executeQuery(select_sql);
-			int process = 0;
-			while(select_rs.next()){
-				String content = select_rs.getString("data_seg");
-				StringTokenizer st = new StringTokenizer(content, " ");
-				process++;
-				if(process % 10000 == 0)
-					System.out.println(String.valueOf(process) + " records done.");
-				while(st.hasMoreTokens()){
-					String key = st.nextToken();
-					if(hashMap.containsKey(key)){
-						Integer freq = hashMap.get(key);
-						freq++;
-						hashMap.put(key, freq);
+			int left = 0;
+			while (true) {
+				String select_sql = String
+						.format("select seg_id,data_seg from %s where seg_id>=%d and seg_id<%d;",
+								database, left, left + step);
+				ResultSet select_rs = stmt.executeQuery(select_sql);
+				
+				//if resultset is empty
+				boolean isEmpty = true;
+				
+				while (select_rs.next()) {
+					isEmpty = false;
+					String content = select_rs.getString("data_seg");
+					StringTokenizer st = new StringTokenizer(content, " ");
+					while (st.hasMoreTokens()) {
+						String key = st.nextToken();
+						if (hashMap.containsKey(key)) {
+							Integer freq = hashMap.get(key);
+							freq++;
+							hashMap.put(key, freq);
+						} else {
+							hashMap.put(key, new Integer(1));
+							idMap.put(key, id);
+							id++;
+						}
 					}
-					else{
-						hashMap.put(key, new Integer(1));
-						idMap.put(key, id);
-						id++;
-					}
-				}
+				}				
+				if(isEmpty == true)
+					break;	
+				left = left + step;
+				System.out.println(String.valueOf(left) + " records done.");
 			}
+			System.out.println("Counting done.");
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
 	}
 	public void save(){
 		System.out.println("Saving start...");
+		ArrayList<DictRecord> dictRecords = new ArrayList<DictRecord>();
 		try {
 			File file = new File(FILE);
 			file.createNewFile();
@@ -81,8 +107,15 @@ public class GlobalTF {
 				String key = entry.getKey();
 				Integer value = entry.getValue();
 				int id = idMap.get(key);
-				writer.write(String.valueOf(id) + " " + key + " " + String.valueOf(value) + "\n");
+				DictRecord record = new DictRecord(id, key, value);
+				dictRecords.add(record);			
 				//id++;
+			}
+			Collections.sort(dictRecords, new DictComp());
+			for (int i = 0; i < dictRecords.size(); i++) {
+				DictRecord record = dictRecords.get(i);
+				writer.write(String.valueOf(record.id) + " " + record.word
+						+ " " + String.valueOf(record.freq) + "\n");
 			}
 			writer.close();
 			
@@ -123,20 +156,6 @@ public class GlobalTF {
 	}
 	public void filter(){
 		System.out.println("filter start....");
-		//File file = new File(STOPWORD);
-//		HashSet<String> stopword = new HashSet<String>();
-//		try {
-//			Reader reader = new InputStreamReader(new FileInputStream(file), "UTF-8");
-//			BufferedReader bReader = new BufferedReader(reader);
-//			String line = bReader.readLine();			
-//			while(line != null){
-//				stopword.add(line.trim());
-//				line = bReader.readLine();
-//			}
-//			bReader.close();
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
 		Iterator it = hashMap.entrySet().iterator();
 		HashMap<String, Integer> tMap = new HashMap<>();
 		idMap.clear();
@@ -145,7 +164,7 @@ public class GlobalTF {
 			Map.Entry<String, Integer> entry = (Map.Entry<String, Integer>) it.next();
 			String key = entry.getKey();
 			Integer value = entry.getValue();
-			if(value > 10 && key.length() > 1){
+			if(value > MIN && value < MAX){
 				tMap.put(key, value);
 				idMap.put(key, id);
 				id++;
@@ -161,42 +180,47 @@ public class GlobalTF {
 		Statement stmt = null;
 		try {
 			stmt = conn.createStatement();
-			String select_sql = String.format("select data_seg from t20140702_100w_seg_2;");
-			ResultSet select_rs = stmt.executeQuery(select_sql);
-			//File file = new File(DOCUMENTS);
-			//file.createNewFile();
-			//Writer writer = new OutputStreamWriter(new FileOutputStream(file), "UTF-8");
+			int process = 0;
 			RandomAccessFile raf = new RandomAccessFile(DOCUMENTS, "rw");
-			int process = 0;	
-			raf.write("          \n".getBytes("UTF-8"));
-			while(select_rs.next()){
-				StringBuilder sBuilder = new StringBuilder("");
-				String content = select_rs.getString("data_seg");
-				StringTokenizer st = new StringTokenizer(content, " ");
-				while(st.hasMoreTokens()){
-					String key = st.nextToken();
-					if(hashMap.containsKey(key)){
-						String valueString = "";
-						if(DOCUMENTS_TYPE.equals("NUM")){
-							valueString = String.valueOf(idMap.get(key));
+			int left = 0;
+			while (true) {
+				boolean isEmpty = true;
+				String select_sql = String
+						.format("select seg_id,data_seg from %s where seg_id>=%d and seg_id<%d;",
+								database, left, left + step);
+				ResultSet select_rs = stmt.executeQuery(select_sql);
+				raf.write("          \n".getBytes("UTF-8"));
+				while (select_rs.next()) {
+					isEmpty = false;
+					StringBuilder sBuilder = new StringBuilder("");
+					String content = select_rs.getString("data_seg");
+					StringTokenizer st = new StringTokenizer(content, " ");
+					while (st.hasMoreTokens()) {
+						String key = st.nextToken();
+						if (hashMap.containsKey(key)) {
+							String valueString = "";
+							if (DOCUMENTS_TYPE.equals("NUM")) {
+								valueString = String.valueOf(idMap.get(key));
+							}
+							if (DOCUMENTS_TYPE.equals("STRING")) {
+								valueString = key;
+							}
+							sBuilder.append(valueString);
+							sBuilder.append(" ");
 						}
-						if(DOCUMENTS_TYPE.equals("STRING")){
-							valueString = key;
-						}
-						//String valueString = String.valueOf(hashMap.get(key));
-						//String valueString = String.valueOf(idMap.get(key));
-						sBuilder.append(valueString);
-						sBuilder.append(" ");
 					}
+					if (sBuilder.length() == 0)
+						continue;
+					sBuilder.append("\n");
+					raf.write(sBuilder.toString().getBytes("UTF-8"));
+					process++;
+					if (process % 1000 == 0)
+						System.out.println(String.valueOf(process)
+								+ " records done.");
 				}
-				if(sBuilder.length() == 0)
-					continue;
-				sBuilder.append("\n");
-				//writer.write(sBuilder.toString());
-				raf.write(sBuilder.toString().getBytes("UTF-8"));
-				process++;
-				if(process % 1000 == 0)
-					System.out.println(String.valueOf(process) + " records done.");
+				if(isEmpty)
+					break;
+				left += step;
 			}
 			raf.seek(0);
 			raf.write(String.valueOf(process).getBytes("utf-8"));
@@ -207,11 +231,78 @@ public class GlobalTF {
 		System.out.println("documents processing done.");
 	}
 	public static void main(String[] args){
+		Config config = new Config();
+		CmdlineParser cp = new CmdlineParser(config);
+		cp.setResourceBundle(GlobalTF.class.getPackage().getName()
+				+ ".Messages", GlobalTF.class.getClassLoader());
+		cp.setProgramName("GlobalTF");
+		try {
+			cp.parse(args);
+
+		} catch (CmdlineParserException e) {
+			System.err.println("Error: " + e.getLocalizedMessage());
+			System.exit(1);
+		}
+		if (config.help) {
+			cp.usage();
+			System.exit(0);
+		}
 		GlobalTF tf = new GlobalTF();
-		tf.count();
-		//tf.load();
-		tf.filter();
-		tf.documentsFilter();
-		//tf.save();
+		tf.database = config.db;
+		tf.step = config.step;
+		tf.MAX = config.max;
+		tf.MIN = config.min;
+		if(config.cipin){
+			tf.count();
+			tf.save();
+			System.exit(0);
+		}
+		if(config.documents){
+			tf.load();
+			tf.filter();
+			tf.documentsFilter();
+			System.exit(0);
+		}
+	}
+	public static class Config {
+	    @CmdOption(names = {"--help", "-h"}, description = "Show this help.", isHelp = true)
+	    public boolean help;
+
+	    
+	    @CmdOption(names = {"--database", "-d"}, args = {"db"},  description = "数据库名", minCount = 1, maxCount = -1)
+	    public String db;
+	    
+	    @CmdOption(names = {"--min"}, args = {"min"}, description = "低频过滤阈值，默认为10", maxCount = -1)
+	    public Integer min = 10;
+	    
+	    @CmdOption(names = {"--max"}, args = {"max"}, description = "高频词过滤阈值，默认为Integer.MAX_VALUE", maxCount = -1)
+	    public Integer max = Integer.MAX_VALUE;
+	    
+	    @CmdOption(names = {"--cipin"}, description = "计算词频，输出到cipin.txt中", maxCount = -1)
+	    public boolean cipin = false;
+	    
+	    @CmdOption(names = {"--documents"}, description = "词频过滤，输出到documents.txt中", maxCount = -1)
+	    public boolean documents = false;
+	    
+	    @CmdOption(names = {"--step"}, args = {"step"}, description = "数据库查询递增步长，默认10000", maxCount = -1)
+	    public Integer step = 10000;
+	        
+	}
+	public class DictRecord{
+		public int id;
+		public String word;
+		public int freq;
+		public DictRecord(int i1, String i2, int i3){
+			id = i1;
+			word = i2;
+			freq = i3;
+		}
+	}
+	public class DictComp implements Comparator<DictRecord>{
+
+		@Override
+		public int compare(DictRecord o1, DictRecord o2) {
+			return o1.freq - o2.freq;
+		}	
 	}
 }
