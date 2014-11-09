@@ -31,9 +31,8 @@ public class GlobalTF {
 	private Map<String, Integer> hashMap = new HashMap<String, Integer>();
 	private Map<String, Integer> idMap = new HashMap<String, Integer>();
 	private final String FILE = "cipin.txt";
-	//private final String STOPWORD = "stopword.txt";
-	private final String DOCUMENTS = "documents_num.txt";
-	private final String DOCUMENTS_TYPE = "NUM"; // STRING
+	private final String DOCUMENTS = "documents.txt";
+	private final String DOCUMENTS_TYPE = "STRING"; // STRING
 	
 	
 	public void count(){
@@ -42,7 +41,7 @@ public class GlobalTF {
 		int id = 0;
 		try {
 			stmt = conn.createStatement();
-			String select_sql = String.format("select data_seg from t20140702_100w_seg;");
+			String select_sql = String.format("select data_seg from t20140702_100w_seg_2;");
 			ResultSet select_rs = stmt.executeQuery(select_sql);
 			int process = 0;
 			while(select_rs.next()){
@@ -162,7 +161,7 @@ public class GlobalTF {
 		Statement stmt = null;
 		try {
 			stmt = conn.createStatement();
-			String select_sql = String.format("select data_seg from t20140702_100w_seg;");
+			String select_sql = String.format("select data_seg from t20140702_100w_seg_2;");
 			ResultSet select_rs = stmt.executeQuery(select_sql);
 			//File file = new File(DOCUMENTS);
 			//file.createNewFile();
@@ -209,10 +208,10 @@ public class GlobalTF {
 	}
 	public static void main(String[] args){
 		GlobalTF tf = new GlobalTF();
-		//tf.count();
-		tf.load();
+		tf.count();
+		//tf.load();
+		tf.filter();
 		tf.documentsFilter();
-		//tf.filter();
 		//tf.save();
 	}
 }

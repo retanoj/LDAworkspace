@@ -44,33 +44,37 @@ class dbSeg extends Thread{
 			
 			System.out.println("\033[1;31;40m dbSeg thread is running... \033[0m");
 			while(true){
-				select_rs_flag = false;
+				select_rs_flag = true;
 				//select part into undo Queue
-				String select_sql = String.format("select id,data_voc from %s where html_id>=%d and html_id<%d;", this.fromTableName, this.left, this.left +this.step);
-				ResultSet select_rs = stmt.executeQuery(select_sql);
-				
-				if (select_rs.next()){
-					select_rs_flag = true;
-					while(select_rs.next()){
-						t = new Data();
-						t.id = select_rs.getInt("id");
-						t.data_voc = select_rs.getString("data_voc");
-						
-						this.qUndo.offer(t);
-					}
-					this.left += this.step;
+				if(this.qUndo.size() < this.step*5){
+					String select_sql = String.format("select id,data_voc from %s where html_id>=%d and html_id<%d;", this.fromTableName, this.left, this.left +this.step);
+					ResultSet select_rs = stmt.executeQuery(select_sql);
 					
+					if (select_rs.next()){
+						while(select_rs.next()){
+							t = new Data();
+							t.id = select_rs.getInt("id");
+							t.data_voc = select_rs.getString("data_voc");
+							
+							this.qUndo.offer(t);
+						}
+						this.left += this.step;
+						
+					} else{
+						select_rs_flag = false;
+					}
 				}
 				try {
 					Thread.sleep(200);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
 				}
+			
 				//insert part from done Queue				
 				insert_sql = "";
 				
-				if (this.qDone.size() > size/2){
-					for (int i=0; i<size/2; i++){
+				if (this.qDone.size() > size){
+					for (int i=0; i<size; i++){
 						t = (Data) this.qDone.poll();
 						if (t.data_voc != null && t.data_voc.length() != 0){
 							insert_sql += String.format("insert into %s (id, data_seg) values(%d, '%s');", this.toTableName, t.id, t.data_voc);
