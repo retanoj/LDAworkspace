@@ -40,6 +40,8 @@ import de.tototec.cmdoption.CmdlineParserException;
 public class GlobalTF {
 	private Map<String, Integer> hashMap = new HashMap<String, Integer>();
 	private Map<String, Integer> idMap = new HashMap<String, Integer>();
+	private Set<String> hfWordSet = new HashSet<String>();//high-frequency word set
+	private final String HFWORD = "gaopin.txt";		//high-frequency word list
 	private final String FILE = "cipin.txt";
 	private String DOCUMENTS = "documents.txt";
 	private final String DOCUMENTS_TYPE = "STRING"; // STRING
@@ -48,6 +50,24 @@ public class GlobalTF {
 	public int MIN;
 	public int MAX;
 	
+	//init hfWordSet
+	private void initHFWordSet(){
+		File file = new File(HFWORD);
+		try {
+			InputStreamReader inReader = new InputStreamReader(new FileInputStream(file), "UTF-8");
+			BufferedReader reader = new BufferedReader(inReader);
+			while(true){
+				String line = reader.readLine();
+				if(line == null)
+					break;
+				hfWordSet.add(line.trim());
+			}
+			reader.close();
+		} catch (IOException e) {
+			System.out.println("Error:" + e.getLocalizedMessage());
+			return ;
+		}	
+	}
 	
 	public void count(){
 		System.out.println("Counting start....");
@@ -114,7 +134,7 @@ public class GlobalTF {
 			Collections.sort(dictRecords, new DictComp());
 			for (int i = 0; i < dictRecords.size(); i++) {
 				DictRecord record = dictRecords.get(i);
-				writer.write(String.valueOf(record.id) + " " + record.word
+				writer.write(String.valueOf(i) + " " + record.word
 						+ " " + String.valueOf(record.freq) + "\n");
 			}
 			writer.close();
@@ -164,7 +184,7 @@ public class GlobalTF {
 			Map.Entry<String, Integer> entry = (Map.Entry<String, Integer>) it.next();
 			String key = entry.getKey();
 			Integer value = entry.getValue();
-			if(value > MIN && value < MAX){
+			if(value > MIN && value < MAX && !hfWordSet.contains(key)){
 				tMap.put(key, value);
 				idMap.put(key, id);
 				id++;
@@ -231,6 +251,7 @@ public class GlobalTF {
 		System.out.println("documents processing done.");
 	}
 	public static void main(String[] args){
+		long startTime=System.currentTimeMillis(); 
 		Config config = new Config();
 		CmdlineParser cp = new CmdlineParser(config);
 		cp.setResourceBundle(GlobalTF.class.getPackage().getName()
@@ -255,21 +276,24 @@ public class GlobalTF {
 		if(config.cipin){
 			tf.count();
 			tf.save();
-			System.exit(0);
+			//System.exit(0);
 		}
 		if(config.documents){
+			tf.initHFWordSet();
 			tf.load();
 			tf.filter();
 			tf.documentsFilter();
-			System.exit(0);
+			//System.exit(0);
 		}
+		long endTime=System.currentTimeMillis();
+		System.out.println(String.valueOf(endTime - startTime) + " millisecond used.");
 	}
 	public static class Config {
 	    @CmdOption(names = {"--help", "-h"}, description = "Show this help.", isHelp = true)
 	    public boolean help;
 
 	    
-	    @CmdOption(names = {"--database", "-d"}, args = {"db"},  description = "数据库名", minCount = 1, maxCount = -1)
+	    @CmdOption(names = {"--database", "-d"}, args = {"db"},  description = "表名", minCount = 1, maxCount = -1)
 	    public String db;
 	    
 	    @CmdOption(names = {"--min"}, args = {"min"}, description = "低频过滤阈值，默认为10", maxCount = -1)
