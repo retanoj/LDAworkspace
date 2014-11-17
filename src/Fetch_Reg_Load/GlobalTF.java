@@ -294,7 +294,7 @@ public class GlobalTF {
 
 	    
 	    @CmdOption(names = {"--db_table", "-t"}, args = {"table"},  description = "表名", minCount = 1, maxCount = -1)
-	    public String db;
+	    public String table;
 	    
 	    @CmdOption(names = {"--min"}, args = {"min"}, description = "低频过滤阈值，默认为10", maxCount = -1)
 	    public Integer min = 10;
