@@ -45,7 +45,7 @@ public class GlobalTF {
 	private final String FILE = "cipin.txt";
 	private String DOCUMENTS = "documents.txt";
 	private final String DOCUMENTS_TYPE = "STRING"; // STRING
-	public String database = "";
+	public String db_table = "";
 	public int step = 10000;
 	public int MIN;
 	public int MAX;
@@ -80,7 +80,7 @@ public class GlobalTF {
 			while (true) {
 				String select_sql = String
 						.format("select seg_id,data_seg from %s where seg_id>=%d and seg_id<%d;",
-								database, left, left + step);
+								db_table, left, left + step);
 				ResultSet select_rs = stmt.executeQuery(select_sql);
 				
 				//if resultset is empty
@@ -207,7 +207,7 @@ public class GlobalTF {
 				boolean isEmpty = true;
 				String select_sql = String
 						.format("select seg_id,data_seg from %s where seg_id>=%d and seg_id<%d;",
-								database, left, left + step);
+								db_table, left, left + step);
 				ResultSet select_rs = stmt.executeQuery(select_sql);
 				raf.write("          \n".getBytes("UTF-8"));
 				while (select_rs.next()) {
@@ -269,7 +269,7 @@ public class GlobalTF {
 			System.exit(0);
 		}
 		GlobalTF tf = new GlobalTF();
-		tf.database = config.db;
+		tf.db_table = config.table;
 		tf.step = config.step;
 		tf.MAX = config.max;
 		tf.MIN = config.min;
@@ -293,7 +293,7 @@ public class GlobalTF {
 	    public boolean help;
 
 	    
-	    @CmdOption(names = {"--database", "-d"}, args = {"db"},  description = "表名", minCount = 1, maxCount = -1)
+	    @CmdOption(names = {"--db_table", "-t"}, args = {"table"},  description = "表名", minCount = 1, maxCount = -1)
 	    public String db;
 	    
 	    @CmdOption(names = {"--min"}, args = {"min"}, description = "低频过滤阈值，默认为10", maxCount = -1)
