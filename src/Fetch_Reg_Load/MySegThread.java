@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,6 +27,13 @@ import org.ansj.splitWord.analysis.ToAnalysis;
 import org.ansj.util.FilterModifWord;
 import org.ansj.util.MyStaticValue;
 import org.apache.commons.codec.binary.Base64;
+import org.lionsoul.jcseg.ASegment;
+import org.lionsoul.jcseg.core.ADictionary;
+import org.lionsoul.jcseg.core.DictionaryFactory;
+import org.lionsoul.jcseg.core.IWord;
+import org.lionsoul.jcseg.core.JcsegException;
+import org.lionsoul.jcseg.core.JcsegTaskConfig;
+import org.lionsoul.jcseg.core.SegmentFactory;
 
 public class MySegThread extends Thread{
 	
@@ -36,6 +44,7 @@ public class MySegThread extends Thread{
 	private final String STOPWORD = "./lib/stopword.txt";
 	private HtmlFilter filter;
 	private HashSet<String> stopSet;
+	ASegment seg = null;
 	
 	@Override
 	public void run() {
@@ -86,12 +95,33 @@ public class MySegThread extends Thread{
 		doneQueue = doneQ;		
 		MyStaticValue.userLibrary = DICTIONARY;
 		filter = new HtmlFilter();
-		initStopWord();
+		initStopWord();	
+		initSeg();
+	}
+	private void initSeg(){
+		JcsegTaskConfig config = new JcsegTaskConfig(null);
+		ADictionary dic = DictionaryFactory
+				.createDefaultDictionary(config,false);
+		try {
+			dic.loadFromLexiconDirectory(config.getLexiconPath()[0]);
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		System.out.println(config.getLexiconPath()[0]);
+		try {
+			seg = (ASegment) SegmentFactory
+					.createJcseg(JcsegTaskConfig.COMPLEX_MODE,
+					new Object[]{config, dic});
+		} catch (JcsegException e) {
+			e.printStackTrace();
+		}
 	}
 	public MySegThread(){
 		MyStaticValue.userLibrary = DICTIONARY;
 		filter = new HtmlFilter();
 		initStopWord();
+		initSeg();
 	}
 	public void setDictionary(String path){
 		DICTIONARY = path;
@@ -129,15 +159,23 @@ public class MySegThread extends Thread{
 	}
 	
 	public String ChineseSeg(String content) throws Exception{
-		List<Term> resulTerms = ToAnalysis.parse(content);
+		//List<Term> resulTerms = ToAnalysis.parse(content);
+		seg.reset(new StringReader(content));
+		IWord word = null;
 		StringBuffer result = new StringBuffer();
-		for(Term t : resulTerms){
-			String word = t.getName();
-			if(isGoodWord(word)){
-				result.append(word);
+		while ((word = seg.next()) != null) {
+			if (isGoodWord(word.getValue())) {
+				result.append(word.getValue());
 				result.append(" ");
-			}			
+			}
 		}
+//		for(Term t : resulTerms){
+//			String word = t.getName();
+//			if(isGoodWord(word)){
+//				result.append(word);
+//				result.append(" ");
+//			}			
+//		}
 		return result.toString();
 	}
 	
