@@ -16,34 +16,37 @@ import org.apache.commons.codec.binary.Base64;
 
 public class MyCrawlerThread extends Thread{
 	
-	private final int TIMEOUT = 10; //second
+	private final int TIMEOUT = 20; //second
 
 	@Override
 	public void run() {
 		Data data = null;
-		Boolean outFlag = false;
-		//System.out.println("Crawler thread is running...");
 		while (true) {
 			try {
-				//System.out.println("the undo queue size is :"+undoQueue.size());
 				data = undoQueue.poll(TIMEOUT, TimeUnit.SECONDS);
 			} catch (InterruptedException e) {		
 				break;
 			}
 			if (data == null) {
-				if (outFlag){
-					System.out.println("crawler thread timeout");
-					break;
-				}
-				outFlag = true;
-				continue;
+				//System.out.println("crawler thread timeout");
+				break;
 			}
-			if(isGoodURL(data.url))
-				data.data_voc = getContent(data.url);
-			else
-				data.data_voc = "";
-			doneQueue.offer(data);
-			//System.out.println("the done queue size is :"+ doneQueue.size());
+			
+			if(isGoodURL(data.url)){
+				if(rept.mContains(data.url)){
+					data.data_voc = rept.mGet(data.url);
+				}else{
+					data.data_voc = getContent(data.url);
+					if(data.data_voc.length() < 20){
+						rept.sAdd(data.url);
+						continue;
+					}else{
+						rept.mAdd(data.url, data.id);
+					}
+				}
+				doneQueue.offer(data);
+			}
+			
 		}
 		
 	}
@@ -52,7 +55,7 @@ public class MyCrawlerThread extends Thread{
 	private List<String> blackList;
 	private BlockingQueue<Data> undoQueue;
 	private BlockingQueue<Data> doneQueue;
-	
+	private RepeatData rept;
 	
 	private void initBlackList(){
 		blackList = new ArrayList<String>();
@@ -89,10 +92,11 @@ public class MyCrawlerThread extends Thread{
 		initBlackList();
 	}
 	
-	public MyCrawlerThread(BlockingQueue<Data> undoQ,BlockingQueue<Data> doneQ){
+	public MyCrawlerThread(BlockingQueue<Data> undoQ, BlockingQueue<Data> doneQ, RepeatData r){
 		initBlackList();
 		undoQueue = undoQ;
-		doneQueue = doneQ;		
+		doneQueue = doneQ;
+		rept = r;
 	}
 	
 	private boolean judgeByEnds(String url){
@@ -126,10 +130,19 @@ public class MyCrawlerThread extends Thread{
 	}
 	
 	public boolean isGoodURL(String url){
-		if(judgeByEnds(url) == false)
+		if(rept.sContains(url))
 			return false;
-		if(judgeByHeader(url) == false)
+		if(rept.mContains(url))
+			return true;
+	
+		if(judgeByEnds(url) == false){
+			rept.sAdd(url);
 			return false;
+		}
+		if(judgeByHeader(url) == false){
+			rept.sAdd(url);
+			return false;
+		}
 		return true;
 	}
 	
