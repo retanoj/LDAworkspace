@@ -31,7 +31,7 @@ public class MySegThread extends Thread{
 	
 	private BlockingQueue<Data> undoQueue;
 	private BlockingQueue<Data> doneQueue;
-	private final int TIMEOUT = 100; //second
+	private final int TIMEOUT = 60; //second
 	private String DICTIONARY = "./lib/default.dic";
 	private final String STOPWORD = "./lib/stopword.txt";
 	private HtmlFilter filter;
