@@ -16,7 +16,7 @@ import org.apache.commons.codec.binary.Base64;
 
 public class MyCrawlerThread extends Thread{
 	
-	private final int TIMEOUT = 20; //second
+	private final int TIMEOUT = 60; //second
 
 	@Override
 	public void run() {
