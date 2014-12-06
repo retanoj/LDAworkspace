@@ -6,3 +6,4 @@ test/
 .classpath
 .settings/org.eclipse.core.resources.prefs
 seg_html.jar
+*.jar
