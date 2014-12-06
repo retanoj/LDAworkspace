@@ -293,13 +293,13 @@ public class GlobalTF {
 	    public boolean help;
 
 	    
-	    @CmdOption(names = {"--db_table", "-t"}, args = {"table"},  description = "表名", minCount = 1, maxCount = -1)
+	    @CmdOption(names = {"--db_table", "-t"}, args = {"[table]"},  description = "表名", minCount = 1, maxCount = -1)
 	    public String table;
 	    
-	    @CmdOption(names = {"--min"}, args = {"min"}, description = "低频过滤阈值，默认为10", maxCount = -1)
+	    @CmdOption(names = {"--min"}, args = {"[min]"}, description = "低频过滤阈值，默认为10", maxCount = -1)
 	    public Integer min = 10;
 	    
-	    @CmdOption(names = {"--max"}, args = {"max"}, description = "高频词过滤阈值，默认为Integer.MAX_VALUE", maxCount = -1)
+	    @CmdOption(names = {"--max"}, args = {"[max]"}, description = "高频词过滤阈值，默认为Integer.MAX_VALUE", maxCount = -1)
 	    public Integer max = Integer.MAX_VALUE;
 	    
 	    @CmdOption(names = {"--cipin"}, description = "计算词频，输出到cipin.txt中", maxCount = -1)
@@ -308,7 +308,7 @@ public class GlobalTF {
 	    @CmdOption(names = {"--documents"}, description = "词频过滤，输出到documents.txt中", maxCount = -1)
 	    public boolean documents = false;
 	    
-	    @CmdOption(names = {"--step"}, args = {"step"}, description = "数据库查询递增步长，默认10000", maxCount = -1)
+	    @CmdOption(names = {"--step"}, args = {"[step]"}, description = "数据库查询递增步长，默认10000", maxCount = -1)
 	    public Integer step = 10000;
 	        
 	}
