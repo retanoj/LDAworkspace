@@ -40,17 +40,10 @@ public class Crawler_html extends Thread{
 				}
 				
 				if(isGoodURL(data.url)){
-//					if(rept.mContains(data.url)){
-//						data.data_voc = rept.mGet(data.url);
-//					}else{
 						data.data_voc = getContent(data.url);
 						if(data.data_voc.length() < 20){
-//							rept.sAdd(data.url);
 							continue;
-//						}else{
-//							rept.mAdd(data.url, data.id);
 						}
-//					}
 					try {
 						w.write(data.id + " " +data.data_voc +'\n');
 					} catch (IOException e) {
@@ -158,17 +151,10 @@ public class Crawler_html extends Thread{
 	}
 	
 	public boolean isGoodURL(String url){
-	
 		if(judgeByEnds(url) == false)
 			return false;
-//		if(rept.sContains(url))
-//			return false;
-//		if(rept.mContains(url))
-//			return true;
-		if(judgeByHeader(url) == false){
-//			rept.sAdd(url);
+		if(judgeByHeader(url) == false)
 			return false;
-		}
 		return true;
 	}
 	
@@ -198,7 +184,6 @@ public class Crawler_html extends Thread{
 			connection.connect();
 			InputStream inputStream = connection.getInputStream();	
 			String charset = getCharset(connection);
-			//System.out.println(charset);
 			String content = inputStream2String(inputStream, charset);
 			return Base64.encodeBase64String(content.getBytes());
 		} catch (IOException e) {

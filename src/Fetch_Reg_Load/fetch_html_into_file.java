@@ -2,6 +2,7 @@ package Fetch_Reg_Load;
 
 
 import java.lang.Thread;
+import java.sql.Statement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -24,18 +25,28 @@ class dbQuery extends Thread{
 	Connection conn;
 	PreparedStatement stmt_query;
 	
-	long count = 0;
 	public dbQuery(LinkedBlockingQueue<Data> qUndo, String table_from, int start_pos, int step){
 		this.start_pos = start_pos;
 		this.step = step;
 		this.table_from = table_from;
 		this.qUndo = qUndo;
-		this.count += start_pos;
 		
 		try {
 			this.conn = ConnUtil.getConn();
-						
-			String query_string = String.format("select id, data_voc from %s where dist>=? and dist<?", table_from);
+			Statement stmt = conn.createStatement();
+			stmt.execute("select count(*) from pg_class where relname = '" +table_from +"'");
+			boolean hasResult = stmt.getResultSet().next();
+			stmt.close();
+			if(!hasResult){
+				System.out.println("Please Create distinct url Table First;\n"
+						+ "eg. create tableName(\n"
+						+ "\tid_dist serial PRIMARY KEY,\n"
+						+ "\tid int,\n"
+						+ "\turl text);");
+				
+				System.exit(1);
+			}
+			String query_string = String.format("select id, url from %s where id_dist>=? and id_dist<?", table_from);
 			stmt_query = conn.prepareStatement(query_string);
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -70,7 +81,6 @@ class dbQuery extends Thread{
 						}
 						left += step;
 					}
-					
 				}else{
 					Thread.sleep(500);
 				}
@@ -124,7 +134,7 @@ public class fetch_html_into_file {
 	}
 	
 	
-	public static void main(String[] args) { 
+	public static void main(String[] args) {
 		Config config = new Config();
 		CmdlineParser cp = new CmdlineParser(config);
 		
