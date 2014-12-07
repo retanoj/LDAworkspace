@@ -83,7 +83,7 @@ public class Seg_html extends Thread{
 				
 				// write into file
 				try {
-					w.write(data.id + " " +data.data_voc +'\n');
+					w.write(data.id + "|" +data.data_voc +'\n');
 				} catch (IOException e) {
 					e.printStackTrace();
 					continue;
