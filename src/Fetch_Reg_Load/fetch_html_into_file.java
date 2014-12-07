@@ -1,8 +1,12 @@
 package Fetch_Reg_Load;
 
-import java.util.concurrent.*;
+
 import java.lang.Thread;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.postgresql.util.PSQLException;
 

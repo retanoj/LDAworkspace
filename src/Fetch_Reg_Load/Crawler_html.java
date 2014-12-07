@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.codec.*;
 import org.apache.commons.codec.binary.Base64;
 
 
