@@ -75,7 +75,7 @@ class dbQuery extends Thread{
 						while(select_rs.next()){
 							Data t = new Data();
 							t.id = select_rs.getInt("id");
-							t.url = select_rs.getString("data_voc");
+							t.url = select_rs.getString("url");
 							t.data_voc = "";
 							qUndo.offer(t);
 						}
