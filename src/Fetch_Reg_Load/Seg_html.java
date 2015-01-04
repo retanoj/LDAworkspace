@@ -118,10 +118,12 @@ public class Seg_html extends Thread{
 	}
 	public Seg_html(){
 		initSeg();
+		initStopWord();
+		filter = new HtmlFilter();
 	}
 	
 	private void initSeg(){
-		JcsegTaskConfig config = new JcsegTaskConfig();
+		JcsegTaskConfig config = new JcsegTaskConfig("./lib/jcseg.properties");
 		ADictionary dic = DictionaryFactory.createDefaultDictionary(config,false);
 		try {
 			dic.loadFromLexiconDirectory(config.getLexiconPath()[0]);
@@ -222,20 +224,44 @@ public class Seg_html extends Thread{
 	
 	public static void main(String[] args) throws IOException{
 		Seg_html s = new Seg_html();
+		System.out.println("Loading done");
+		Reader reader = new InputStreamReader(new FileInputStream("./test/b64input.txt"), "UTF-8");
+		BufferedReader bReader = new BufferedReader(reader);
 		
+		while(true){
+			String input = bReader.readLine();
+			if (input == null){
+				System.out.println("input is empty.");
+				break;
+			}
+			System.out.println("Read Size:" +input.length());
+			String output = s.decodeBase64(input);
+			System.out.println("b64decode Size:" +output.length());
+			try {
+				output = s.filter.filterHtml(output);
+				System.out.println("filterHTML Size:" +output.length());
+				output = s.ChineseSeg(output);
+				System.out.println("after Seg Size:" +output.length());
+				System.out.println(output);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		bReader.close();
 	}	
 }
 class HtmlFilter{
-	private Pattern blankLine, cData, script, style, br, h, comment, body, charEntity;
+	private Pattern blankLine, cData, script, style, a, br, h, comment, body, charEntity;
 	public HtmlFilter(){
 		blankLine = Pattern.compile("[\n|\r|\t| ]+");
-		cData = Pattern.compile("//<!\\[CDATA\\[[^>]*//\\]\\]>");
-		script = Pattern.compile("<\\s*script[^>]*>[\\s\\S]*?<\\s*/\\s*script\\s*>");
-		style = Pattern.compile("<\\s*style[^>]*>[\\s\\S]*?<\\s*/\\s*style\\s*>");
-		br = Pattern.compile("<br\\s*?/?>");
-		h = Pattern.compile("</?\\w+[^>]*>");
-		comment = Pattern.compile("<[!|#]--.*?-->");
-		body = Pattern.compile("<\\s*body[^>]*?>([\\s\\S]*?)<\\s*/\\s*body");
+		cData = Pattern.compile("//<!\\[CDATA\\[[^>]*//\\]\\]>", Pattern.CASE_INSENSITIVE);
+		script = Pattern.compile("<\\s*script[^>]*>[\\s\\S]*?<\\s*/\\s*script\\s*>", Pattern.CASE_INSENSITIVE);
+		style = Pattern.compile("<\\s*style[^>]*>[\\s\\S]*?<\\s*/\\s*style\\s*>", Pattern.CASE_INSENSITIVE);
+		a = Pattern.compile("<\\s*a[^>]*>[\\s\\S]*?<\\s*/\\s*a\\s*>", Pattern.CASE_INSENSITIVE);
+		br = Pattern.compile("<br\\s*?/?>", Pattern.CASE_INSENSITIVE);
+		h = Pattern.compile("</?\\w+[^>]*>", Pattern.CASE_INSENSITIVE);
+		comment = Pattern.compile("<[!|#]--.*?-->", Pattern.CASE_INSENSITIVE);
+		body = Pattern.compile("<\\s*body[^>]*?>([\\s\\S]*?)<\\s*/\\s*body", Pattern.CASE_INSENSITIVE);
 		charEntity = Pattern.compile("&#?(?<name>\\w+);");
 	}
 	private String replaceCharEntity(String input){
@@ -268,6 +294,7 @@ class HtmlFilter{
 		input = cData.matcher(input).replaceAll("");
 		input = script.matcher(input).replaceAll("");
 		input = style.matcher(input).replaceAll("");
+		input = a.matcher(input).replaceAll("");
 		input = br.matcher(input).replaceAll("\n");
 		input = h.matcher(input).replaceAll("");
 		input = comment.matcher(input).replaceAll("");
