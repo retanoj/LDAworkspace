@@ -5,3 +5,8 @@ create table t20140702_distinct(
 
 	
 insert into t20140702_distinct(id, url) select distinct on (log_data1) id, log_data1 from t20140702;
+
+create table t20140702_seg(
+    id_seg serial PRIMARY KEY,
+    id  int,
+    data_seg test);
