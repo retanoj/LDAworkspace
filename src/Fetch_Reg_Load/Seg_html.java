@@ -76,7 +76,7 @@ public class Seg_html extends Thread{
 				} catch (Exception e) {
 					continue;
 				}
-				if(afterSeg.trim().length() < 20)
+				if(afterSeg.trim().length() < 30)
 					continue;
 				
 				data.data_voc = afterSeg.trim();
