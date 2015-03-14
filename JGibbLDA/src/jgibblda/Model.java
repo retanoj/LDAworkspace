@@ -297,6 +297,7 @@ public class Model {
 		try{
 			BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
 			for (int i = 0; i < M; i++){
+				writer.write(data.docs[i].statid +"|");
 				for (int j = 0; j < K; j++){
 					writer.write(theta[i][j] + " ");
 				}

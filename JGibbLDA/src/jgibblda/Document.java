@@ -38,6 +38,7 @@ public class Document {
 	public int [] words;
 	public String rawStr;
 	public int length;
+	public int statid;
 	
 	//----------------------------------------------------
 	//Constructors
@@ -86,6 +87,15 @@ public class Document {
 	public Document(Vector<Integer> doc, String rawStr){
 		this.length = doc.size();
 		this.rawStr = rawStr;
+		this.words = new int[length];
+		for (int i = 0; i < length; ++i){
+			this.words[i] = doc.get(i);
+		}
+	}
+	public Document(Vector<Integer> doc, String rawStr, int statid){
+		this.length = doc.size();
+		this.rawStr = rawStr;
+		this.statid = statid;
 		this.words = new int[length];
 		for (int i = 0; i < length; ++i){
 			this.words[i] = doc.get(i);

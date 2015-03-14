@@ -140,6 +140,49 @@ public class LDADataset {
 			V = localDict.word2id.size();			
 		}
 	}
+	
+	public void setDoc(String str, int idx, char sep){
+		if (0 <= idx && idx < M){
+			int statid = Integer.parseInt(str.split("|")[0]);
+			str = str.split("|")[1];
+			
+			String [] words = str.split("[ \\t\\n]");
+			
+			Vector<Integer> ids = new Vector<Integer>();
+			
+			for (String word : words){
+				int _id = localDict.word2id.size();
+				
+				if (localDict.contains(word))		
+					_id = localDict.getID(word);
+								
+				if (globalDict != null){
+					//get the global id					
+					Integer id = globalDict.getID(word);
+					//System.out.println(id);
+					
+					if (id != null){
+						localDict.addWord(word);
+						
+						lid2gid.put(_id, id);
+						ids.add(_id);
+					}
+					else { //not in global dictionary
+						//do nothing currently
+					}
+				}
+				else {
+					localDict.addWord(word);
+					ids.add(_id);
+				}
+			}
+			
+			Document doc = new Document(ids, str, statid);
+			docs[idx] = doc;
+			V = localDict.word2id.size();			
+		}
+	}
+	
 	//---------------------------------------------------------------
 	// I/O methods
 	//---------------------------------------------------------------
@@ -232,7 +275,8 @@ public class LDADataset {
 			for (int i = 0; i < M; ++i){
 				line = reader.readLine();
 				
-				data.setDoc(line, i);
+				//data.setDoc(line, i);
+				data.setDoc(line, i, '|');
 			}
 			
 			return data;
