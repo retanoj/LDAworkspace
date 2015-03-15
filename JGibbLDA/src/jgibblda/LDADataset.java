@@ -141,10 +141,10 @@ public class LDADataset {
 		}
 	}
 	
-	public void setDoc(String str, int idx, char sep){
+	public void setDoc(String str, int idx, String sep){
 		if (0 <= idx && idx < M){
-			int statid = Integer.parseInt(str.split("|")[0]);
-			str = str.split("|")[1];
+			int statid = Integer.parseInt(str.split(sep)[0]);
+			str = str.split(sep)[1];
 			
 			String [] words = str.split("[ \\t\\n]");
 			
@@ -246,7 +246,7 @@ public class LDADataset {
 				line = reader.readLine();
 				
 				//data.setDoc(line, i);
-				data.setDoc(line, i, '|');
+				data.setDoc(line, i, "[|]");
 			}
 			
 			return data;
@@ -277,7 +277,7 @@ public class LDADataset {
 				line = reader.readLine();
 				
 				//data.setDoc(line, i);
-				data.setDoc(line, i, '|');
+				data.setDoc(line, i, "[|]");
 			}
 			
 			return data;
