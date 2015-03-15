@@ -245,7 +245,8 @@ public class LDADataset {
 			for (int i = 0; i < M; ++i){
 				line = reader.readLine();
 				
-				data.setDoc(line, i);
+				//data.setDoc(line, i);
+				data.setDoc(line, i, '|');
 			}
 			
 			return data;
