@@ -6,3 +6,5 @@ test/
 # ignore file
 .classpath
 .settings/org.eclipse.core.resources.prefs
+.idea/
+
