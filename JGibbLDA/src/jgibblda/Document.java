@@ -39,6 +39,7 @@ public class Document {
 	public String rawStr;
 	public int length;
 	public int statid;
+	public int area;
 	
 	//----------------------------------------------------
 	//Constructors
@@ -92,10 +93,11 @@ public class Document {
 			this.words[i] = doc.get(i);
 		}
 	}
-	public Document(Vector<Integer> doc, String rawStr, int statid){
+	public Document(Vector<Integer> doc, String rawStr, int statid, int aid){
 		this.length = doc.size();
 		this.rawStr = rawStr;
 		this.statid = statid;
+		this.area = aid;
 		this.words = new int[length];
 		for (int i = 0; i < length; ++i){
 			this.words[i] = doc.get(i);

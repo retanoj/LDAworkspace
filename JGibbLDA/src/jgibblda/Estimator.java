@@ -30,6 +30,8 @@ package jgibblda;
 
 import java.io.File;
 import java.util.Vector;
+import static java.lang.Math.log;
+import static java.lang.Math.exp;
 
 public class Estimator {
 	
@@ -55,38 +57,36 @@ public class Estimator {
 	}
 	
 	public void estimate(){
-		System.out.println("Sampling " + trnModel.niters + " iteration!");
+		//System.out.println("Sampling " + trnModel.niters + " iteration!");
 		
 		int lastIter = trnModel.liter;
 		for (trnModel.liter = lastIter + 1; trnModel.liter < trnModel.niters + lastIter; trnModel.liter++){
-			System.out.println("Iteration " + trnModel.liter + " ...");
+			//System.out.println("Iteration " + trnModel.liter + " ...");
 			
-			// for all z_i
-			for (int m = 0; m < trnModel.M; m++){				
-				for (int n = 0; n < trnModel.data.docs[m].length; n++){
-					// z_i = z[m][n]
-					// sample from p(z_i|z_-i, w)
+			for (int m = 0; m < trnModel.M; m++){ //对于每一篇文档
+				for (int n = 0; n < trnModel.data.docs[m].length; n++){ //对于每篇文档的每个位置
 					int topic = sampling(m, n);
 					trnModel.z[m].set(n, topic);
-				}// end for each word
-			}// end for each document
+				}
+			}
 			
 			if (option.savestep > 0){
 				if (trnModel.liter % option.savestep == 0){
-					System.out.println("Saving the model at iteration " + trnModel.liter + " ...");
 					computeTheta();
 					computePhi();
-					trnModel.saveModel("model-" + Conversion.ZeroPad(trnModel.liter, 5));
+					computeOmiga();
+					//trnModel.saveModel("model-" + Conversion.ZeroPad(trnModel.liter, 5));
+					System.out.println(String.format("llh:%f",computeLogLikelihood()));
 				}
 			}
-		}// end iterations		
+		}		
 		
-		System.out.println("Gibbs sampling completed!\n");
-		System.out.println("Saving the final model!\n");
 		computeTheta();
 		computePhi();
+		computeOmiga();
 		trnModel.liter--;
 		trnModel.saveModel("model-final");
+		System.out.println(String.format("for topicn=%d, llh=%f", trnModel.K, computeLogLikelihood()));
 	}
 	
 	/**
@@ -97,21 +97,30 @@ public class Estimator {
 	 */
 	public int sampling(int m, int n){
 		// remove z_i from the count variable
-		int topic = trnModel.z[m].get(n);
-		int w = trnModel.data.docs[m].words[n];
+		int topic = trnModel.z[m].get(n);       //获得第m篇文档第n个位置的主题
+		int w = trnModel.data.docs[m].words[n]; //获得第m篇文档第n个位置的词
+		int x = trnModel.data.docs[m].area;		//获得第m篇文档所属的区域x
 		
-		trnModel.nw[w][topic] -= 1;
-		trnModel.nd[m][topic] -= 1;
-		trnModel.nwsum[topic] -= 1;
-		trnModel.ndsum[m] -= 1;
+		trnModel.nw[w][topic] -= 1; //词w分到主题t的次数减1
+		trnModel.nd[m][topic] -= 1; //文档m中分到主题t的词的个数减1
+		trnModel.nx[x][topic] -= 1; //区域x中分到主题t的词的个数减1
+		trnModel.nwsum[topic] -= 1; //分到t主题的词的个数减1
+		trnModel.ndsum[m]     -= 1; //文档m中词的个数减1
+		trnModel.nxsum[x]     -= 1;	//区域x中词的个数减1
 		
-		double Vbeta = trnModel.V * trnModel.beta;
+		double Vbeta  = trnModel.V * trnModel.beta ;
 		double Kalpha = trnModel.K * trnModel.alpha;
+		double Kgamma = trnModel.K * trnModel.gamma;
 		
 		//do multinominal sampling via cumulative method
 		for (int k = 0; k < trnModel.K; k++){
-			trnModel.p[k] = (trnModel.nw[w][k] + trnModel.beta)/(trnModel.nwsum[k] + Vbeta) *
-					(trnModel.nd[m][k] + trnModel.alpha)/(trnModel.ndsum[m] + Kalpha);
+			trnModel.p[k] = (trnModel.nw[w][k] + trnModel.beta )/(trnModel.nwsum[k] + Vbeta )
+							*(trnModel.nd[m][k] + trnModel.alpha)/(trnModel.ndsum[m] + Kalpha)
+							*( 1.0 / ( 1.0 + exp( -( (double)trnModel.nx[x][k] / trnModel.nxsum[x] - 1.0 / trnModel.K ) ) ) + 0.5);
+		
+//		System.out.println(String.format("%f * %f * %f", (trnModel.nw[w][k] + trnModel.beta )/(trnModel.nwsum[k] + Vbeta ),
+//														(trnModel.nd[m][k] + trnModel.alpha)/(trnModel.ndsum[m] + Kalpha),
+//														( 1.0 / ( 1.0 + exp( -( (double)trnModel.nx[x][k] / trnModel.nxsum[x] - 1.0 / trnModel.K ) / trnModel.K ) ) + 0.5)));
 		}
 		
 		// cumulate multinomial parameters
@@ -130,8 +139,10 @@ public class Estimator {
 		// add newly estimated z_i to count variables
 		trnModel.nw[w][topic] += 1;
 		trnModel.nd[m][topic] += 1;
+		trnModel.nx[x][topic] += 1;
 		trnModel.nwsum[topic] += 1;
-		trnModel.ndsum[m] += 1;
+		trnModel.ndsum[m]     += 1;
+		trnModel.nxsum[x]     += 1;
 		
  		return topic;
 	}
@@ -150,5 +161,33 @@ public class Estimator {
 				trnModel.phi[k][w] = (trnModel.nw[w][k] + trnModel.beta) / (trnModel.nwsum[k] + trnModel.V * trnModel.beta);
 			}
 		}
+	}
+	
+	public void computeOmiga(){
+		for (int x = 0; x < trnModel.X; x++){
+			for (int k = 0; k < trnModel.K; k++){
+				trnModel.omiga[x][k] = (trnModel.nx[x][k] + trnModel.gamma) / (trnModel.nxsum[x] + trnModel.K * trnModel.gamma);
+			}
+		}
+	}
+	
+	public double computeLogLikelihood(){
+		double loglikelihood = 0;
+		int w,x;
+		for (int m = 0; m < trnModel.M; m++){
+			for (int n = 0; n < trnModel.data.docs[m].length; n++){
+				double p = 0;
+				w = trnModel.data.docs[m].words[n]; //获得第m篇文档第n个位置的词
+				x = trnModel.data.docs[m].area;		//获得第m篇文档所属的区域x
+				for (int k = 0; k < trnModel.K; k++){
+					p  +=  trnModel.theta[m][k] 
+						 * trnModel.omiga[x][k] 
+						 * trnModel.phi[k][w];
+				}
+				loglikelihood += log(p);
+			}
+		}
+		
+		return loglikelihood;
 	}
 }

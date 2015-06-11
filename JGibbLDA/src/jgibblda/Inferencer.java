@@ -28,6 +28,9 @@
 
 package jgibblda;
 
+import static java.lang.Math.exp;
+import static java.lang.Math.log;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -57,7 +60,7 @@ public class Inferencer {
 		globalDict = trnModel.data.localDict;
 		computeTrnTheta();
 		computeTrnPhi();
-		
+		computeTrnOmiga();
 		return true;
 	}
 	
@@ -89,6 +92,7 @@ public class Inferencer {
 		
 		computeNewTheta();
 		computeNewPhi();
+		computeNewOmiga();
 		newModel.liter--;
 		return this.newModel;
 	}
@@ -105,36 +109,28 @@ public class Inferencer {
 	
 	//inference new model ~ getting dataset from file specified in option
 	public Model inference(){	
-		//System.out.println("inference");
+		System.out.println("inference");
 		
 		newModel = new Model();
 		if (!newModel.initNewModel(option, trnModel)) return null;
-		
-		System.out.println("Sampling " + niters + " iteration for inference!");
+		niters = newModel.niters;
 		
 		for (newModel.liter = 1; newModel.liter <= niters; newModel.liter++){
-			//System.out.println("Iteration " + newModel.liter + " ...");
-			
-			// for all newz_i
+
 			for (int m = 0; m < newModel.M; ++m){
 				for (int n = 0; n < newModel.data.docs[m].length; n++){
-					// (newz_i = newz[m][n]
-					// sample from p(z_i|z_-1,w)
 					int topic = infSampling(m, n);
 					newModel.z[m].set(n, topic);
 				}
-			}//end foreach new doc
-			
-		}// end iterations
-		
-		System.out.println("Gibbs sampling for inference completed!");		
-		System.out.println("Saving the inference outputs!");
+			}
+		}
 		
 		computeNewTheta();
 		computeNewPhi();
+		computeNewOmiga();
 		newModel.liter--;
 		newModel.saveModel(newModel.dfile + "." + newModel.modelName);		
-		
+		System.out.println(String.format("for topicn=%d, llh=%f", newModel.K, computeLogLikelihood()));
 		return newModel;
 	}
 	
@@ -148,18 +144,23 @@ public class Inferencer {
 		int topic = newModel.z[m].get(n);
 		int _w = newModel.data.docs[m].words[n];
 		int w = newModel.data.lid2gid.get(_w);
-		newModel.nw[_w][topic] -= 1;
+		int x = newModel.data.docs[m].area;
+		newModel.nw[_w][topic]-= 1;
 		newModel.nd[m][topic] -= 1;
+		newModel.nx[x][topic] -= 1;
 		newModel.nwsum[topic] -= 1;
-		newModel.ndsum[m] -= 1;
+		newModel.ndsum[m]	  -= 1;
+		newModel.nxsum[x] 	  -= 1;
 		
 		double Vbeta = trnModel.V * newModel.beta;
 		double Kalpha = trnModel.K * newModel.alpha;
+		double Kgamma = trnModel.K * newModel.gamma;
 		
 		// do multinomial sampling via cummulative method		
 		for (int k = 0; k < newModel.K; k++){			
-			newModel.p[k] = (trnModel.nw[w][k] + newModel.nw[_w][k] + newModel.beta)/(trnModel.nwsum[k] +  newModel.nwsum[k] + Vbeta) *
-					(newModel.nd[m][k] + newModel.alpha)/(newModel.ndsum[m] + Kalpha);
+			newModel.p[k] = (trnModel.nw[w][k] + newModel.nw[_w][k] + newModel.beta)/(trnModel.nwsum[k] +  newModel.nwsum[k] + Vbeta)
+							*(newModel.nd[m][k] + newModel.alpha)/(newModel.ndsum[m] + Kalpha)
+							*( 1.0 / ( 1.0 + exp( -( (double)newModel.nx[x][k] / newModel.nxsum[x] - 1.0 / newModel.K )  ) ) + 0.5);
 		}
 		
 		// cummulate multinomial parameters
@@ -176,10 +177,12 @@ public class Inferencer {
 		}
 		
 		// add newly estimated z_i to count variables
-		newModel.nw[_w][topic] += 1;
+		newModel.nw[_w][topic]+= 1;
 		newModel.nd[m][topic] += 1;
+		newModel.nx[x][topic] += 1;
 		newModel.nwsum[topic] += 1;
-		newModel.ndsum[m] += 1;
+		newModel.ndsum[m]	  += 1;
+		newModel.nxsum[x]     += 1;
 		
 		return topic;
 	}
@@ -198,10 +201,18 @@ public class Inferencer {
 				Integer id = newModel.data.lid2gid.get(_w);
 				
 				if (id != null){
-					newModel.phi[k][_w] = (trnModel.nw[id][k] + newModel.nw[_w][k] + newModel.beta) / (newModel.nwsum[k] + newModel.nwsum[k] + trnModel.V * newModel.beta);
+					newModel.phi[k][_w] = (trnModel.nw[id][k] + newModel.nw[_w][k] + newModel.beta) / (trnModel.nwsum[k] + newModel.nwsum[k] + trnModel.V * newModel.beta);
 				}
 			}//end foreach word
 		}// end foreach topic
+	}
+	
+	protected void computeNewOmiga(){
+		for (int x = 0; x < newModel.X; x++){
+			for (int k = 0; k < newModel.K; k++){
+				newModel.omiga[x][k] = (newModel.nx[x][k] + newModel.gamma) / (newModel.nxsum[x] + newModel.K * newModel.gamma);
+			}
+		}
 	}
 	
 	protected void computeTrnTheta(){
@@ -218,5 +229,33 @@ public class Inferencer {
 				trnModel.phi[k][w] = (trnModel.nw[w][k] + trnModel.beta) / (trnModel.nwsum[k] + trnModel.V * trnModel.beta);
 			}
 		}
+	}
+	
+	protected void computeTrnOmiga(){
+		for (int x = 0; x < trnModel.X; x++){
+			for (int k = 0; k < trnModel.K; k++){
+				trnModel.omiga[x][k] = (trnModel.nx[x][k] + trnModel.gamma) / (trnModel.nxsum[x] + trnModel.K * trnModel.gamma);
+			}
+		}
+	}
+	
+	public double computeLogLikelihood(){
+		double loglikelihood = 0;
+		int w,x;
+		for (int m = 0; m < newModel.M; m++){
+			for (int n = 0; n < newModel.data.docs[m].length; n++){
+				double p = 0;
+				w = newModel.data.docs[m].words[n]; //获得第m篇文档第n个位置的词
+				x = newModel.data.docs[m].area;		//获得第m篇文档所属的区域x
+				for (int k = 0; k < newModel.K; k++){
+					p  +=  newModel.theta[m][k] 
+						 * newModel.omiga[x][k] 
+						 * newModel.phi[k][w];
+				}
+				loglikelihood += log(p);
+			}
+		}
+		
+		return loglikelihood;
 	}
 }

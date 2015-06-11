@@ -43,6 +43,7 @@ public class LDADataset {
 	public Document [] docs; 		// a list of documents	
 	public int M; 			 		// number of documents
 	public int V;			 		// number of words
+	public int X;					// number of areas
 	
 	// map from local coordinates (id) to global ones 
 	// null if the global dictionary is not set
@@ -58,6 +59,7 @@ public class LDADataset {
 		localDict = new Dictionary();
 		M = 0;
 		V = 0;
+		X = 0;
 		docs = null;
 	
 		globalDict = null;
@@ -68,6 +70,7 @@ public class LDADataset {
 		localDict = new Dictionary();
 		this.M = M;
 		this.V = 0;
+		this.X = 0;
 		docs = new Document[M];	
 		
 		globalDict = null;
@@ -78,6 +81,7 @@ public class LDADataset {
 		localDict = new Dictionary();	
 		this.M = M;
 		this.V = 0;
+		this.X = 0;
 		docs = new Document[M];	
 		
 		this.globalDict = globalDict;
@@ -143,8 +147,10 @@ public class LDADataset {
 	
 	public void setDoc(String str, int idx, String sep){
 		if (0 <= idx && idx < M){
-			int statid = Integer.parseInt(str.split(sep)[0]);
-			str = str.split(sep)[1];
+			String[] strls = str.split(sep);
+			int statid = Integer.parseInt(strls[0]);
+			int aid = Integer.parseInt(strls[1]);
+			str = strls[2];
 			
 			String [] words = str.split("[ \\t\\n]");
 			
@@ -177,10 +183,12 @@ public class LDADataset {
 				}
 			}
 			
-			Document doc = new Document(ids, str, statid);
+			Document doc = new Document(ids, str, statid, aid);
 			docs[idx] = doc;
-			V = localDict.word2id.size();			
+			V = localDict.word2id.size();
+			X = aid>=X ? aid+1 : X;
 		}
+		
 	}
 	
 	//---------------------------------------------------------------
@@ -237,9 +245,9 @@ public class LDADataset {
 	public static LDADataset readDataSet(BufferedReader reader){
 		try {
 			//read number of document
-			String line;
-			line = reader.readLine();
+			String line = reader.readLine();
 			int M = Integer.parseInt(line.trim());
+			System.out.println("readDataSet " +M);
 			
 			LDADataset data = new LDADataset(M);
 			for (int i = 0; i < M; ++i){

@@ -54,7 +54,8 @@ public class LDA {
 				inferencer.init(option);
 				
 				Model newModel = inferencer.inference();
-			
+				
+				/*
 				for (int i = 0; i < newModel.phi.length; ++i){
 					//phi: K * V
 					System.out.println("-----------------------\ntopic" + i  + " : ");
@@ -62,6 +63,7 @@ public class LDA {
 						System.out.println(inferencer.globalDict.id2word.get(j) + "\t" + newModel.phi[i][j]);
 					}
 				}
+				*/
 			}
 		}
 		catch (CmdLineException cle){

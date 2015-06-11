@@ -28,6 +28,9 @@ public class LDACmdOption {
 	@Option(name="-beta", usage="Specify beta")
 	public double beta = -1.0;
 	
+	@Option(name="-gamma", usage="Specify gamma")
+	public double gamma = -1.0;
+	
 	@Option(name="-ntopics", usage="Specify the number of topics")
 	public int K = 100;
 	

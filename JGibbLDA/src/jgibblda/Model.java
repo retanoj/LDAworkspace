@@ -54,6 +54,7 @@ public class Model {
 	public static String phiSuffix;		//suffix for phi file (topic - word distribution) file
 	public static String othersSuffix; 	//suffix for containing other parameters
 	public static String twordsSuffix;		//suffix for file containing words-per-topics
+	public static String omigaSuffix;
 	
 	//---------------------------------------------------------------
 	//	Model Parameters and Variables
@@ -71,7 +72,9 @@ public class Model {
 	public int M; //dataset size (i.e., number of docs)
 	public int V; //vocabulary size
 	public int K; //number of topics
+	public int X; //number of area
 	public double alpha, beta; //LDA  hyperparameters
+	public double gamma; // LDA hyperparameter
 	public int niters; //number of Gibbs sampling iteration
 	public int liter; //the iteration at which the model was saved	
 	public int savestep; //saving period
@@ -81,13 +84,16 @@ public class Model {
 	// Estimated/Inferenced parameters
 	public double [][] theta; //theta: document - topic distributions, size M x K
 	public double [][] phi; // phi: topic-word distributions, size K x V
+	public double [][] omiga; //omiga: area - topic distributions, size X x K
 	
 	// Temp variables while sampling
 	public Vector<Integer> [] z; //topic assignments for words, size M x doc.size()
 	protected int [][] nw; //nw[i][j]: number of instances of word/term i assigned to topic j, size V x K
 	protected int [][] nd; //nd[i][j]: number of words in document i assigned to topic j, size M x K
+	protected int [][] nx; //nx[i][j]: number of words in area i assigned to topic j, size X x K
 	protected int [] nwsum; //nwsum[j]: total number of words assigned to topic j, size K
 	protected int [] ndsum; //ndsum[i]: total number of words in document i, size M
+	protected int [] nxsum; //nxsum[i]: total number of words in area i, size X
 	
 	// temp variables for sampling
 	protected double [] p; 
@@ -109,6 +115,7 @@ public class Model {
 		tassignSuffix = ".tassign";
 		thetaSuffix = ".theta";
 		phiSuffix = ".phi";
+		omigaSuffix = ".omiga";
 		othersSuffix = ".others";
 		twordsSuffix = ".twords";
 		
@@ -120,18 +127,23 @@ public class Model {
 		M = 0;
 		V = 0;
 		K = 100;
+		X = 0;
 		alpha = 50.0 / K;
 		beta = 0.1;
+		gamma = 0.5;
 		niters = 2000;
 		liter = 0;
 		
 		z = null;
 		nw = null;
 		nd = null;
+		nx = null;
 		nwsum = null;
 		ndsum = null;
+		nxsum = null;
 		theta = null;
 		phi = null;
+		omiga = null;
 	}
 	
 	//---------------------------------------------------------------
@@ -162,6 +174,9 @@ public class Model {
 				else if (optstr.equalsIgnoreCase("beta")){
 					beta = Double.parseDouble(optval);
 				}
+				else if (optstr.equalsIgnoreCase("gamma")){
+					gamma = Double.parseDouble(optval);
+				}
 				else if (optstr.equalsIgnoreCase("ntopics")){
 					K = Integer.parseInt(optval);
 				}
@@ -173,6 +188,9 @@ public class Model {
 				}
 				else if (optstr.equalsIgnoreCase("ndocs")){
 					M = Integer.parseInt(optval);
+				}
+				else if (optstr.equalsIgnoreCase("nareas")){
+					X = Integer.parseInt(optval);
 				}
 				else {
 					// any more?
@@ -297,7 +315,7 @@ public class Model {
 		try{
 			BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
 			for (int i = 0; i < M; i++){
-				writer.write(data.docs[i].statid +"|");
+				//writer.write(data.docs[i].statid +"|" +data.docs[i].area +"|");
 				for (int j = 0; j < K; j++){
 					writer.write(theta[i][j] + " ");
 				}
@@ -307,6 +325,25 @@ public class Model {
 		}
 		catch (Exception e){
 			System.out.println("Error while saving topic distribution file for this model: " + e.getMessage());
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+	}
+	
+	public boolean saveModelOmiga(String filename){
+		try{
+			BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
+			for (int i = 0; i < X; i++){
+				for (int j = 0; j < K; j++){
+					writer.write(omiga[i][j] + " ");
+				}
+				writer.write("\n");
+			}
+			writer.close();
+		}
+		catch (Exception e){
+			System.out.println("Error while saving topic distribution file for this model:" + e.getMessage());
 			e.printStackTrace();
 			return false;
 		}
@@ -346,11 +383,12 @@ public class Model {
 			
 			writer.write("alpha=" + alpha + "\n");
 			writer.write("beta=" + beta + "\n");
+			writer.write("gamma=" + gamma + "\n");
 			writer.write("ntopics=" + K + "\n");
 			writer.write("ndocs=" + M + "\n");
 			writer.write("nwords=" + V + "\n");
+			writer.write("nareas=" + X + "\n");
 			writer.write("liters=" + liter + "\n");
-			
 			writer.close();
 		}
 		catch(Exception e){
@@ -424,6 +462,10 @@ public class Model {
 			return false;
 		}
 		
+		if (!saveModelOmiga(dir + File.separator + modelName + omigaSuffix)){
+			return false;
+		}
+		
 		if (twords > 0){
 			if (!saveModelTwords(dir + File.separator + modelName + twordsSuffix))
 				return false;
@@ -451,6 +493,9 @@ public class Model {
 		if (option.beta >= 0)
 			beta = option.beta;
 		
+		if (option.gamma >= 0)
+			gamma = option.gamma;
+		
 		niters = option.niters;
 		
 		dir = option.dir;
@@ -468,10 +513,11 @@ public class Model {
 	 * Init parameters for estimation
 	 */
 	public boolean initNewModel(LDACmdOption option){
+		System.out.println("initNewModel");
 		if (!init(option))
 			return false;
 		
-		int m, n, w, k;		
+		int m, n, w, k,x;		
 		p = new double[K];		
 		
 		data = LDADataset.readDataSet(dir + File.separator + dfile);
@@ -483,6 +529,7 @@ public class Model {
 		//+ allocate memory and assign values for variables		
 		M = data.M;
 		V = data.V;
+		X = data.X;
 		dir = option.dir;
 		savestep = option.savestep;
 		
@@ -504,6 +551,13 @@ public class Model {
 			}
 		}
 		
+		nx = new int[X][K];
+		for (x = 0; x < X; x++){
+			for (k = 0; k < K; k++){
+				nx[x][k] = 0;
+			}
+		}
+		
 		nwsum = new int[K];
 		for (k = 0; k < K; k++){
 			nwsum[k] = 0;
@@ -514,9 +568,15 @@ public class Model {
 			ndsum[m] = 0;
 		}
 		
+		nxsum = new int[X];
+		for (x = 0; x < X; x++){
+			nxsum[x] = 0;
+		}
+		
 		z = new Vector[M];
 		for (m = 0; m < data.M; m++){
 			int N = data.docs[m].length;
+			int aid = data.docs[m].area;
 			z[m] = new Vector<Integer>();
 			
 			//initilize for z
@@ -528,16 +588,20 @@ public class Model {
 				nw[data.docs[m].words[n]][topic] += 1;
 				// number of words in document i assigned to topic j
 				nd[m][topic] += 1;
+				// number of words in area aid assigned to topic j
+				nx[aid][topic] += 1;
 				// total number of words assigned to topic j
 				nwsum[topic] += 1;
 			}
 			// total number of words in document i
 			ndsum[m] = N;
+			// total number of words in area aid
+			nxsum[aid] += N;
 		}
 		
 		theta = new double[M][K];		
 		phi = new double[K][V];
-		
+		omiga = new double[X][K];
 		return true;
 	}
 	
@@ -549,24 +613,27 @@ public class Model {
 		if (!init(option))
 			return false;
 		
-		int m, n, w, k;
+		int m, n, w, k, x;
 		
 		K = trnModel.K;
 		alpha = trnModel.alpha;
-		beta = trnModel.beta;		
+		beta = trnModel.beta;
+		gamma = trnModel.gamma;
 		
 		p = new double[K];
-		System.out.println("K:" + K);
+		//System.out.println("K:" + K);
 		
 		data = newData;
 		
 		//+ allocate memory and assign values for variables		
 		M = data.M;
 		V = data.V;
+		X = data.X;
 		dir = option.dir;
 		savestep = option.savestep;
-		System.out.println("M:" + M);
-		System.out.println("V:" + V);
+		//System.out.println("M:" + M);
+		//System.out.println("V:" + V);
+		//System.out.println("X:" + X);
 		
 		// K: from command line or default value
 	    // alpha, beta: from command line or default values
@@ -586,6 +653,13 @@ public class Model {
 			}
 		}
 		
+		nx = new int[X][K];
+		for (x = 0; x < X; x++){
+			for (k = 0; k < K; k++){
+				nx[x][k] = 0;
+			}
+		}
+		
 		nwsum = new int[K];
 		for (k = 0; k < K; k++){
 			nwsum[k] = 0;
@@ -596,9 +670,15 @@ public class Model {
 			ndsum[m] = 0;
 		}
 		
+		nxsum = new int[X];
+		for (x = 0; x < X; x++){
+			nxsum[x] = 0;
+		}
+		
 		z = new Vector[M];
 		for (m = 0; m < data.M; m++){
 			int N = data.docs[m].length;
+			int aid = data.docs[m].area;
 			z[m] = new Vector<Integer>();
 			
 			//initilize for z
@@ -610,16 +690,20 @@ public class Model {
 				nw[data.docs[m].words[n]][topic] += 1;
 				// number of words in document i assigned to topic j
 				nd[m][topic] += 1;
+				// number of words in area aid assigned to topic j
+				nx[aid][topic] += 1;
 				// total number of words assigned to topic j
 				nwsum[topic] += 1;
 			}
 			// total number of words in document i
 			ndsum[m] = N;
+			// total number of words in area aid
+			nxsum[aid] += N;
 		}
 		
 		theta = new double[M][K];		
 		phi = new double[K][V];
-		
+		omiga = new double[X][K];
 		return true;
 	}
 	
@@ -647,7 +731,7 @@ public class Model {
 		if (!init(option))
 			return false;
 		
-		int m, n, w, k;
+		int m, n, w, k, x;
 		
 		p = new double[K];
 		
@@ -657,11 +741,12 @@ public class Model {
 			return false;
 		}
 		
-		System.out.println("Model loaded:");
-		System.out.println("\talpha:" + alpha);
-		System.out.println("\tbeta:" + beta);
-		System.out.println("\tM:" + M);
-		System.out.println("\tV:" + V);		
+		//System.out.println("Model loaded:");
+		//System.out.println("\talpha:" + alpha);
+		//System.out.println("\tbeta:" + beta);
+		//System.out.println("\tM:" + M);
+		//System.out.println("\tV:" + V);		
+		//System.out.println("\tX:" + X);
 		
 		nw = new int[V][K];
 		for (w = 0; w < V; w++){
@@ -677,19 +762,31 @@ public class Model {
 			}
 		}
 		
+		nx = new int[X][K];
+		for (x = 0; x < X; x++){
+			for (k = 0; k < K; k++){
+				nx[x][k] = 0;
+			}
+		}
+		
 		nwsum = new int[K];
 	    for (k = 0; k < K; k++) {
-		nwsum[k] = 0;
+	    	nwsum[k] = 0;
 	    }
 	    
 	    ndsum = new int[M];
 	    for (m = 0; m < M; m++) {
-		ndsum[m] = 0;
+	    	ndsum[m] = 0;
 	    }
+	    
+		nxsum = new int[X];
+		for (x = 0; x < X; x++){
+			nxsum[x] = 0;
+		}
 	    
 	    for (m = 0; m < data.M; m++){
 	    	int N = data.docs[m].length;
-	    	
+	    	int aid = data.docs[m].area;
 	    	// assign values for nw, nd, nwsum, and ndsum
 	    	for (n = 0; n < N; n++){
 	    		w = data.docs[m].words[n];
@@ -699,15 +796,20 @@ public class Model {
 	    		nw[w][topic] += 1;
 	    		// number of words in document i assigned to topic j
 	    		nd[m][topic] += 1;
+				// number of words in area aid assigned to topic j
+				nx[aid][topic] += 1;
 	    		// total number of words assigned to topic j
 	    		nwsum[topic] += 1;	    		
 	    	}
 	    	// total number of words in document i
 	    	ndsum[m] = N;
+			// total number of words in area aid
+			nxsum[aid] += N;
 	    }
 	    
 	    theta = new double[M][K];
 	    phi = new double[K][V];
+		omiga = new double[X][K];
 	    dir = option.dir;
 		savestep = option.savestep;
 	    
