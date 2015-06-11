@@ -224,30 +224,31 @@ public class Seg_html extends Thread{
 	
 	public static void main(String[] args) throws IOException{
 		Seg_html s = new Seg_html();
-		System.out.println("Loading done");
-		Reader reader = new InputStreamReader(new FileInputStream("./test/b64input.txt"), "UTF-8");
-		BufferedReader bReader = new BufferedReader(reader);
-		
-		while(true){
-			String input = bReader.readLine();
-			if (input == null){
-				System.out.println("input is empty.");
-				break;
-			}
-			System.out.println("Read Size:" +input.length());
-			String output = s.decodeBase64(input);
-			System.out.println("b64decode Size:" +output.length());
-			try {
-				output = s.filter.filterHtml(output);
-				System.out.println("filterHTML Size:" +output.length());
-				output = s.ChineseSeg(output);
-				System.out.println("after Seg Size:" +output.length());
-				System.out.println(output);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-		bReader.close();
+		String output;
+//		System.out.println("Loading done");
+//		Reader reader = new InputStreamReader(new FileInputStream("./test/b64input.txt"), "UTF-8");
+//		BufferedReader bReader = new BufferedReader(reader);
+//		
+//		while(true){
+//			String input = bReader.readLine();
+//			if (input == null){
+//				System.out.println("input is empty.");
+//				break;
+//			}
+//			System.out.println("Read Size:" +input.length());
+//			String output = s.decodeBase64(input);
+//			System.out.println("b64decode Size:" +output.length());
+//			try {
+//				output = s.filter.filterHtml(output);
+//				System.out.println("filterHTML Size:" +output.length());
+//				output = s.ChineseSeg(output);
+//				System.out.println("after Seg Size:" +output.length());
+//				System.out.println(output);
+//			} catch (Exception e) {
+//				e.printStackTrace();
+//			}
+//		}
+//		bReader.close();
 	}	
 }
 class HtmlFilter{
