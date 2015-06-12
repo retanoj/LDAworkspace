@@ -10,3 +10,5 @@ create table t20140702_seg(
     id_seg serial PRIMARY KEY,
     id  int,
     data_seg test);
+	
+cat seg1 >> seg0; wc -l seg0 | awk -F ' ' {'print $1'} > documents.txt && cut -d ' ' -f2- seg0 >> documents.txt
